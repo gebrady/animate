@@ -49,7 +49,7 @@ class TestLandsatAnimator(unittest.TestCase):
     def test_visualization_mode_rgb(self):
         """Test RGB visualization mode configuration"""
         rgb_config = LandsatAnimator.VISUALIZATION_MODES['rgb']
-        self.assertEqual(rgb_config['bands'], ['B4', 'B3', 'B2'])
+        self.assertEqual(rgb_config['bands'], ['SR_B4', 'SR_B3', 'SR_B2'])
         self.assertEqual(rgb_config['min'], 0)
         self.assertEqual(rgb_config['max'], 0.3)
     

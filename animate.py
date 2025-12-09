@@ -8,47 +8,48 @@ import sys
 import click
 import ee
 from geopy.geocoders import Nominatim
-from PIL import Image
 import imageio
 import numpy as np
 from datetime import datetime, timedelta
 import json
+import urllib.request
 
 
 class LandsatAnimator:
     """Creates animated GIFs from Landsat satellite imagery"""
     
     # Visualization modes and their band configurations
+    # Using Landsat Collection 2 Level 2 surface reflectance bands (SR_B*)
     VISUALIZATION_MODES = {
         'rgb': {
-            'bands': ['B4', 'B3', 'B2'],  # Red, Green, Blue for Landsat 8
+            'bands': ['SR_B4', 'SR_B3', 'SR_B2'],  # Red, Green, Blue for Landsat 8
             'min': 0,
             'max': 0.3,
             'description': 'Natural color (RGB)'
         },
         'false_color': {
-            'bands': ['B5', 'B4', 'B3'],  # NIR, Red, Green
+            'bands': ['SR_B5', 'SR_B4', 'SR_B3'],  # NIR, Red, Green
             'min': 0,
             'max': 0.3,
             'description': 'False color infrared'
         },
         'ndvi': {
             'expression': '(NIR - RED) / (NIR + RED)',
-            'bands': {'NIR': 'B5', 'RED': 'B4'},
+            'bands': {'NIR': 'SR_B5', 'RED': 'SR_B4'},
             'palette': ['blue', 'white', 'green'],
             'min': -1,
             'max': 1,
             'description': 'Normalized Difference Vegetation Index'
         },
         'panchromatic': {
-            'bands': ['B8'],  # Panchromatic band
+            'bands': ['SR_B8'],  # Panchromatic band
             'min': 0,
             'max': 0.3,
             'description': 'Panchromatic (grayscale)'
         },
         'built_up': {
             'expression': '(SWIR - NIR) / (SWIR + NIR)',
-            'bands': {'SWIR': 'B6', 'NIR': 'B5'},
+            'bands': {'SWIR': 'SR_B6', 'NIR': 'SR_B5'},
             'palette': ['white', 'yellow', 'red'],
             'min': -1,
             'max': 1,
@@ -56,7 +57,7 @@ class LandsatAnimator:
         },
         'snow': {
             'expression': '(GREEN - SWIR) / (GREEN + SWIR)',
-            'bands': {'GREEN': 'B3', 'SWIR': 'B6'},
+            'bands': {'GREEN': 'SR_B3', 'SWIR': 'SR_B6'},
             'palette': ['black', 'cyan', 'white'],
             'min': -1,
             'max': 1,
@@ -140,6 +141,22 @@ class LandsatAnimator:
             lat + lat_degrees / 2
         ])
     
+    def scale_landsat_c2(self, image):
+        """
+        Apply scaling factors for Landsat Collection 2 Level 2 surface reflectance
+        
+        Args:
+            image: Earth Engine Image
+            
+        Returns:
+            Scaled image
+        """
+        # Optical bands (scale factor: 0.0000275, offset: -0.2)
+        optical_bands = image.select('SR_B.').multiply(0.0000275).add(-0.2)
+        
+        # Return scaled image
+        return image.addBands(optical_bands, None, True)
+    
     def get_landsat_collection(self, region, start_date, end_date, cloud_cover=10):
         """
         Get Landsat image collection for the region and time period
@@ -153,11 +170,12 @@ class LandsatAnimator:
         Returns:
             Earth Engine ImageCollection
         """
-        # Use Landsat 8 Collection 2, Tier 1
+        # Use Landsat 8 Collection 2, Tier 1, Level 2 (Surface Reflectance)
         collection = ee.ImageCollection('LANDSAT/LC08/C02/T1_L2') \
             .filterBounds(region) \
             .filterDate(start_date, end_date) \
-            .filter(ee.Filter.lt('CLOUD_COVER', cloud_cover))
+            .filter(ee.Filter.lt('CLOUD_COVER', cloud_cover)) \
+            .map(self.scale_landsat_c2)
         
         return collection
     
@@ -172,26 +190,32 @@ class LandsatAnimator:
         Returns:
             List of image info dictionaries
         """
-        # Get all images and their dates
-        images_list = collection.toList(collection.size())
-        size = images_list.size().getInfo()
+        # Get collection size
+        size = collection.size().getInfo()
         
         if size == 0:
             return []
+        
+        # Get all dates and cloud cover values in batch (more efficient than N+1 queries)
+        images_list = collection.toList(size)
+        dates = collection.aggregate_array('system:time_start').getInfo()
+        cloud_covers = collection.aggregate_array('CLOUD_COVER').getInfo()
         
         # Group by year-month
         monthly_images = {}
         
         for i in range(size):
-            image = ee.Image(images_list.get(i))
-            date_str = ee.Date(image.get('system:time_start')).format('YYYY-MM').getInfo()
+            # Format date as YYYY-MM
+            date_ms = dates[i]
+            date_obj = datetime.utcfromtimestamp(date_ms / 1000)
+            date_str = date_obj.strftime('%Y-%m')
+            
+            cloud_cover = cloud_covers[i]
             
             # Keep the image with lowest cloud cover for each month
-            cloud_cover = image.get('CLOUD_COVER').getInfo()
-            
             if date_str not in monthly_images or cloud_cover < monthly_images[date_str]['cloud_cover']:
                 monthly_images[date_str] = {
-                    'image': image,
+                    'image': ee.Image(images_list.get(i)),
                     'date': date_str,
                     'cloud_cover': cloud_cover
                 }
@@ -254,7 +278,6 @@ class LandsatAnimator:
         })
         
         # Download the image
-        import urllib.request
         filepath = os.path.join(self.output_dir, filename)
         urllib.request.urlretrieve(url, filepath)
         
