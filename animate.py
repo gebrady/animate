@@ -82,7 +82,13 @@ class LandsatAnimator:
             if service_account_email and private_key_json:
                 # Authenticate using service account email and private key from environment variables
                 click.echo("Authenticating with service account from environment variables...")
-                private_key_data = json.loads(private_key_json)
+                try:
+                    private_key_data = json.loads(private_key_json)
+                except json.JSONDecodeError as e:
+                    click.echo(f"Error: EE_PRIVATE_KEY contains invalid JSON: {e}")
+                    click.echo("Please ensure EE_PRIVATE_KEY is a valid JSON string.")
+                    sys.exit(1)
+                
                 credentials = service_account.Credentials.from_service_account_info(
                     private_key_data,
                     scopes=['https://www.googleapis.com/auth/earthengine']
