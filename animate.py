@@ -109,7 +109,7 @@ class LandsatAnimator:
                     headers={"X-Auth-Token": self.api_key},
                     timeout=10
                 )
-            except:
+            except requests.exceptions.RequestException:
                 pass  # Best effort logout
     
     def get_coordinates(self, location):
@@ -182,15 +182,7 @@ class LandsatAnimator:
             "end": end_date
         }
         
-        # Create cloud cover filter
-        cloud_cover_filter = {
-            "filterType": "value",
-            "filterId": "5e83d08fd0458",  # Cloud cover filter ID
-            "value": max_cloud_cover,
-            "operand": "<=",
-        }
-        
-        # Search request
+        # Search request (cloud cover filtering is done manually after results)
         search_payload = {
             "datasetName": self.LANDSAT_DATASET,
             "spatialFilter": spatial_filter,
@@ -254,14 +246,18 @@ class LandsatAnimator:
         monthly_scenes = {}
         
         for scene in scenes:
-            # Extract year-month from acquisition date
-            date_str = scene['acquisition_date'][:7]  # YYYY-MM
+            # Extract year-month from acquisition date (expecting format YYYY-MM-DD or longer)
+            date_str = scene.get('acquisition_date', '')
+            if len(date_str) >= 7:
+                date_str = date_str[:7]  # YYYY-MM
+            else:
+                continue  # Skip scenes with invalid dates
             
             if date_str not in monthly_scenes or scene['cloud_cover'] < monthly_scenes[date_str]['cloud_cover']:
                 monthly_scenes[date_str] = scene
         
         # Sort by date
-        selected_scenes = sorted(monthly_scenes.values(), key=lambda x: x['acquisition_date'])
+        selected_scenes = sorted(monthly_scenes.values(), key=lambda x: x.get('acquisition_date', ''))
         
         click.echo(f"Selected {len(selected_scenes)} scenes (one per month)")
         return selected_scenes
