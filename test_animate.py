@@ -15,8 +15,6 @@ class TestLandsatAnimator(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures"""
         self.animator = LandsatAnimator()
-        # Store original environment variables
-        self.original_landsat_collection = os.environ.get('LANDSAT_COLLECTION')
         
     def test_get_coordinates_from_latlong(self):
         """Test coordinate parsing from lat,long string"""
@@ -63,36 +61,8 @@ class TestLandsatAnimator(unittest.TestCase):
         self.assertEqual(ndvi_config['min'], -1)
         self.assertEqual(ndvi_config['max'], 1)
     
-    def test_landsat_collection_default(self):
-        """Test that default Landsat collection is used when no env var is set"""
-        # Clear the environment variable
-        if 'LANDSAT_COLLECTION' in os.environ:
-            del os.environ['LANDSAT_COLLECTION']
-        
-        # The default collection should be used
-        # We can't test the actual Earth Engine call without authentication,
-        # but we can verify the environment variable handling
-        default_collection = os.environ.get('LANDSAT_COLLECTION', 'LANDSAT/LC08/C02/T1_L2')
-        self.assertEqual(default_collection, 'LANDSAT/LC08/C02/T1_L2')
-    
-    def test_landsat_collection_from_env_var(self):
-        """Test that Landsat collection can be set via environment variable"""
-        # Set a custom collection
-        custom_collection = 'LANDSAT/LC09/C02/T1_L2'
-        os.environ['LANDSAT_COLLECTION'] = custom_collection
-        
-        # Verify the environment variable is set correctly
-        collection = os.environ.get('LANDSAT_COLLECTION')
-        self.assertEqual(collection, custom_collection)
-    
     def tearDown(self):
         """Clean up after tests"""
-        # Restore original environment variables
-        if self.original_landsat_collection is not None:
-            os.environ['LANDSAT_COLLECTION'] = self.original_landsat_collection
-        elif 'LANDSAT_COLLECTION' in os.environ:
-            del os.environ['LANDSAT_COLLECTION']
-        
         # Remove test output directory if it was created
         if os.path.exists('output') and not os.listdir('output'):
             shutil.rmtree('output')

@@ -8,32 +8,12 @@
    ```
 
 2. **Authenticate with Google Earth Engine**
-   
-   **Option 1: User Authentication (Interactive)**
    ```bash
    earthengine authenticate
    ```
    This will open a browser window to authenticate with your Google account.
 
-   **Option 2: Service Account Authentication (Automated)**
-   
-   Using a credentials file:
-   ```bash
-   export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
-   ```
-   
-   Or using environment variables:
-   ```bash
-   export EE_SERVICE_ACCOUNT=your-service-account@project.iam.gserviceaccount.com
-   export EE_PRIVATE_KEY='{"type": "service_account", "project_id": "your-project", ...}'
-   ```
-
-3. **(Optional) Configure Landsat Collection**
-   ```bash
-   export LANDSAT_COLLECTION=LANDSAT/LC08/C02/T1_L2
-   ```
-
-4. **Run the Tool**
+3. **Run the Tool**
    ```bash
    python animate.py --location "Your City" --mode rgb
    ```
@@ -122,9 +102,7 @@ Uses the high-resolution panchromatic band for detailed grayscale imagery.
 ## Troubleshooting
 
 ### "Error initializing Earth Engine"
-- **Default authentication**: Run `earthengine authenticate` to set up user credentials
-- **Service account**: Set `GOOGLE_APPLICATION_CREDENTIALS` to your service account key file
-- **Environment variables**: Set both `EE_SERVICE_ACCOUNT` and `EE_PRIVATE_KEY`
+- Run `earthengine authenticate` to set up credentials
 - Make sure you have a Google account with Earth Engine access
 
 ### "No images found matching criteria"
@@ -179,25 +157,6 @@ animator.generate_animation(
 ```
 
 ## Advanced Options
-
-### Environment Variables
-
-The tool supports the following environment variables:
-
-- **`LANDSAT_COLLECTION`**: Override the default Landsat collection path
-  - Default: `LANDSAT/LC08/C02/T1_L2` (Landsat 8 Collection 2)
-  - Example: `export LANDSAT_COLLECTION=LANDSAT/LC09/C02/T1_L2` (for Landsat 9)
-
-- **`GOOGLE_APPLICATION_CREDENTIALS`**: Path to service account credentials file
-  - Example: `export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json`
-
-- **`EE_SERVICE_ACCOUNT`**: Service account email address
-  - Example: `export EE_SERVICE_ACCOUNT=your-sa@project.iam.gserviceaccount.com`
-
-- **`EE_PRIVATE_KEY`**: Service account private key as JSON string
-  - Example: `export EE_PRIVATE_KEY='{"type": "service_account", ...}'`
-
-### Programmatic Usage
 
 For more control, you can modify the `animate.py` script:
 - Change the date range in `generate_animation()`

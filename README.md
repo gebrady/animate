@@ -25,33 +25,9 @@ pip install -r requirements.txt
 ```
 
 2. Authenticate with Google Earth Engine:
-
-   **Option 1: User Authentication (Default)**
-   ```bash
-   earthengine authenticate
-   ```
-
-   **Option 2: Service Account with JSON Key**
-   
-   Set the path to your service account credentials file:
-   ```bash
-   export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
-   ```
-
-   **Option 3: Service Account with Environment Variables**
-   
-   Set your service account email and private key directly:
-   ```bash
-   export EE_SERVICE_ACCOUNT=your-service-account@project.iam.gserviceaccount.com
-   export EE_PRIVATE_KEY='{"type": "service_account", "project_id": "your-project", ...}'
-   ```
-
-3. (Optional) Configure Landsat Collection:
-   
-   By default, the tool uses Landsat 8 Collection 2. You can override this:
-   ```bash
-   export LANDSAT_COLLECTION=LANDSAT/LC08/C02/T1_L2
-   ```
+```bash
+earthengine authenticate
+```
 
 ## Usage
 
