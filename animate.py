@@ -13,6 +13,7 @@ import numpy as np
 from datetime import datetime, timedelta
 import json
 import urllib.request
+from google.oauth2 import service_account
 
 
 class LandsatAnimator:
@@ -71,12 +72,42 @@ class LandsatAnimator:
         os.makedirs(self.output_dir, exist_ok=True)
         
     def initialize_earth_engine(self):
-        """Initialize Google Earth Engine"""
+        """Initialize Google Earth Engine with support for service account authentication via environment variables"""
         try:
-            ee.Initialize()
+            # Check for service account authentication via environment variables
+            service_account_email = os.environ.get('EE_SERVICE_ACCOUNT')
+            private_key_json = os.environ.get('EE_PRIVATE_KEY')
+            credentials_file = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+            
+            if service_account_email and private_key_json:
+                # Authenticate using service account email and private key from environment variables
+                click.echo("Authenticating with service account from environment variables...")
+                private_key_data = json.loads(private_key_json)
+                credentials = service_account.Credentials.from_service_account_info(
+                    private_key_data,
+                    scopes=['https://www.googleapis.com/auth/earthengine']
+                )
+                ee.Initialize(credentials=credentials)
+                click.echo("Successfully authenticated with service account.")
+            elif credentials_file:
+                # Authenticate using credentials file path from environment variable
+                click.echo(f"Authenticating with credentials file: {credentials_file}")
+                credentials = service_account.Credentials.from_service_account_file(
+                    credentials_file,
+                    scopes=['https://www.googleapis.com/auth/earthengine']
+                )
+                ee.Initialize(credentials=credentials)
+                click.echo("Successfully authenticated with credentials file.")
+            else:
+                # Fall back to default authentication (user credentials)
+                ee.Initialize()
+                click.echo("Using default Earth Engine authentication.")
         except Exception as e:
             click.echo(f"Error initializing Earth Engine: {e}")
-            click.echo("Please authenticate first by running: earthengine authenticate")
+            click.echo("\nAuthentication options:")
+            click.echo("1. Default: Run 'earthengine authenticate' to set up user credentials")
+            click.echo("2. Service Account: Set EE_SERVICE_ACCOUNT and EE_PRIVATE_KEY environment variables")
+            click.echo("3. Credentials File: Set GOOGLE_APPLICATION_CREDENTIALS environment variable")
             sys.exit(1)
     
     def get_coordinates(self, location):
@@ -170,8 +201,11 @@ class LandsatAnimator:
         Returns:
             Earth Engine ImageCollection
         """
-        # Use Landsat 8 Collection 2, Tier 1, Level 2 (Surface Reflectance)
-        collection = ee.ImageCollection('LANDSAT/LC08/C02/T1_L2') \
+        # Get Landsat collection path from environment variable or use default
+        collection_path = os.environ.get('LANDSAT_COLLECTION', 'LANDSAT/LC08/C02/T1_L2')
+        
+        # Use Landsat 8 Collection 2, Tier 1, Level 2 (Surface Reflectance) by default
+        collection = ee.ImageCollection(collection_path) \
             .filterBounds(region) \
             .filterDate(start_date, end_date) \
             .filter(ee.Filter.lt('CLOUD_COVER', cloud_cover)) \
@@ -334,6 +368,10 @@ class LandsatAnimator:
         click.echo(f"Fetching Landsat images from {start_date} to {end_date}")
         click.echo(f"Cloud cover filter: <{cloud_cover}%")
         click.echo(f"Visualization mode: {mode} - {self.VISUALIZATION_MODES[mode]['description']}")
+        
+        # Show which collection is being used
+        collection_path = os.environ.get('LANDSAT_COLLECTION', 'LANDSAT/LC08/C02/T1_L2')
+        click.echo(f"Using collection: {collection_path}")
         
         collection = self.get_landsat_collection(region, start_date, end_date, cloud_cover)
         
