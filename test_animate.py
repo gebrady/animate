@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Tests for Landsat GIF Animator
+Tests for Landsat GIF Animator using USGS EarthExplorer
 """
 
 import unittest
@@ -40,7 +40,7 @@ class TestLandsatAnimator(unittest.TestCase):
     
     def test_visualization_modes_defined(self):
         """Test that all visualization modes are properly defined"""
-        required_modes = ['rgb', 'false_color', 'ndvi', 'panchromatic', 'built_up', 'snow']
+        required_modes = ['rgb', 'false_color', 'ndvi']
         for mode in required_modes:
             self.assertIn(mode, LandsatAnimator.VISUALIZATION_MODES)
             config = LandsatAnimator.VISUALIZATION_MODES[mode]
@@ -49,17 +49,23 @@ class TestLandsatAnimator(unittest.TestCase):
     def test_visualization_mode_rgb(self):
         """Test RGB visualization mode configuration"""
         rgb_config = LandsatAnimator.VISUALIZATION_MODES['rgb']
-        self.assertEqual(rgb_config['bands'], ['SR_B4', 'SR_B3', 'SR_B2'])
-        self.assertEqual(rgb_config['min'], 0)
-        self.assertEqual(rgb_config['max'], 0.3)
+        self.assertEqual(rgb_config['bands'], ['B4', 'B3', 'B2'])
     
     def test_visualization_mode_ndvi(self):
         """Test NDVI visualization mode configuration"""
         ndvi_config = LandsatAnimator.VISUALIZATION_MODES['ndvi']
         self.assertIn('expression', ndvi_config)
-        self.assertIn('palette', ndvi_config)
-        self.assertEqual(ndvi_config['min'], -1)
-        self.assertEqual(ndvi_config['max'], 1)
+        self.assertIn('bands', ndvi_config)
+    
+    def test_api_url_defined(self):
+        """Test that M2M API URL is defined"""
+        self.assertIsNotNone(LandsatAnimator.M2M_API_URL)
+        self.assertTrue(LandsatAnimator.M2M_API_URL.startswith('https://'))
+    
+    def test_landsat_dataset_defined(self):
+        """Test that Landsat dataset is defined"""
+        self.assertIsNotNone(LandsatAnimator.LANDSAT_DATASET)
+        self.assertEqual(LandsatAnimator.LANDSAT_DATASET, 'landsat_ot_c2_l2')
     
     def tearDown(self):
         """Clean up after tests"""
