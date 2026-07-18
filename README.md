@@ -1,8 +1,6 @@
 # Landanimate
 
-Create animated 30 m crops from low-cloud Landsat and Sentinel-2 scenes.
-The tool streams only the selected crop from each remote COG, writes each
-rendered PNG under `out/scenes`, then builds a GIF and date/scene report.
+Create an animated Landsat crop or prepare direct USGS M2M scene downloads.
 
 ## Installation
 
@@ -14,9 +12,9 @@ pip install -r requirements.txt
 
 Landsat catalog discovery is anonymous, but USGS access-gates full-resolution
 Landsat pixels. In the [USGS EROS Registration System](https://ers.cr.usgs.gov/),
-create an M2M application token and paste it into the private, Git-ignored
-`landanimate.config.json`. Validate it without printing or saving the temporary
-API key:
+create an M2M application token and enter it together with your ERS username in
+the private, Git-ignored `landanimate.config.json`. Validate it without printing
+or saving the temporary API key:
 
 ```bash
 python usgs_auth.py
@@ -28,21 +26,25 @@ token documentation](https://www.usgs.gov/media/files/m2m-application-token-docu
 
 ## Morristown test
 
-`test_morristown.py` is prepared for Morristown, New Jersey (`40.7968,-74.4815`):
-a 20-mile square, Landsat archive beginning `1982-08-22`, maximum 10% cloud,
-eight scenes/year target, RGB, and 16 FPS.
+`test_morristown.py` prepares an authenticated USGS M2M Landsat Collection 2
+download plan for Morristown, New Jersey (`40.7968,-74.4815`): a 20-mile square,
+the 1972-present Landsat record, maximum 10% cloud, and one scene target per year.
 
 ```bash
 python test_morristown.py
 ```
 
-For a no-pixel discovery pass that writes the selected-date report only:
+For a no-pixel Landsat discovery pass that writes the selected-date report only:
 
 ```bash
 python landanimate.py --lat 40.7968 --lon -74.4815 --miles 20 \
-  --start 1982-08-22 --cloud 10 --per-year 8 --mode rgb --fps 16 --plan-only
+  --start 1972-07-23 --source landsat --cloud 10 --per-year 1 --plan-only
 ```
 
-Use `--source sentinel` for anonymous Sentinel-2 imagery (2015 onward) or
-`--source both` to combine sources. `--mode built-up` renders SWIR, NIR, and
-red to emphasize impervious and built surfaces.
+Landsat searches and downloads go directly through USGS M2M using the
+EarthExplorer application token in `landanimate.config.json`; no Google or
+third-party cloud catalog is used. `--prepare-downloads` writes temporary USGS
+download URLs to `out/downloads.json`. The search combines MSS (1972+), TM
+(1982+), ETM+ (1999+), and Landsat 8/9 (2013+) Collection 2 inventories. M2M
+products are full archives, so this command deliberately prepares downloads
+rather than streaming their bands as remote COGs.

@@ -8,7 +8,8 @@ from pathlib import Path
 import click
 import requests
 
-M2M_LOGIN_TOKEN = "https://m2m.cr.usgs.gov/api/api/json/stable/login-token"
+# Match the currently supported USGS M2M test endpoint for application tokens.
+M2M_LOGIN_TOKEN = "https://m2m.cr.usgs.gov/api/api/json/experimental/login-token"
 
 
 def load_config(path: Path) -> dict:
@@ -25,11 +26,15 @@ def load_config(path: Path) -> dict:
 @click.option("--config", type=click.Path(path_type=Path), default=Path("landanimate.config.json"), show_default=True)
 def main(config: Path) -> None:
     """Exchange a USGS EROS M2M application token for a temporary API key."""
-    token = load_config(config).get("m2m_application_token")
+    settings = load_config(config)
+    username = settings.get("username")
+    token = settings.get("m2m_application_token")
+    if not username or username == "your-earth-explorer-username":
+        raise click.ClickException("Set usgs_eros.username in the private config.")
     if not token or token == "paste-your-64-character-m2m-application-token-here":
         raise click.ClickException("Set usgs_eros.m2m_application_token in the private config.")
     try:
-        response = requests.post(M2M_LOGIN_TOKEN, json={"token": token}, timeout=30)
+        response = requests.post(M2M_LOGIN_TOKEN, json={"username": username, "token": token}, timeout=30)
         response.raise_for_status()
         payload = response.json()
     except requests.RequestException as error:

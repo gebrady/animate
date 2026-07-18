@@ -25,6 +25,7 @@ wheels/
 
 # Output folder
 output/
+out/
 
 # Private access credentials
 .config/
