@@ -48,3 +48,14 @@ download URLs to `out/downloads.json`. The search combines MSS (1972+), TM
 (1982+), ETM+ (1999+), and Landsat 8/9 (2013+) Collection 2 inventories. M2M
 products are full archives, so this command deliberately prepares downloads
 rather than streaming their bands as remote COGs.
+
+For a rendered Landsat RGB test, `--download-bands` fetches only the three
+needed GeoTIFFs per selected scene, crops them locally, and builds a GIF.
+It supports the 1972-present MSS, TM, ETM+, and Landsat 8/9 record. MSS has no
+blue band, so its frames use a B5/B4/B4 pseudo-RGB composite and a per-scene
+stretch. The full Claremont test downloads roughly three bands for each annual
+frame and can require several gigabytes of local storage.
+
+All rendered crops use the local UTM grid rather than Web Mercator. Candidates
+must fully contain the AOI footprint; Landsat 7 scenes after its 2003 SLC failure
+are excluded. Rendered crops with under 90% usable coverage are also rejected.

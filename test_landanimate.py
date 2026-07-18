@@ -4,10 +4,22 @@ from unittest.mock import patch
 
 import requests
 
-from landanimate import Scene, m2m_download_plan, m2m_sentinel_search
+from landanimate import Scene, coverage_contains_bbox, m2m_download_plan, m2m_sentinel_search, usable_frame_fraction
 
 
 class M2MSentinelTests(unittest.TestCase):
+    def test_coverage_requires_the_whole_aoi(self):
+        coverage = {"type": "Polygon", "coordinates": [[
+            [-118, 33], [-117, 33], [-117, 35], [-118, 35], [-118, 33],
+        ]]}
+        self.assertTrue(coverage_contains_bbox(coverage, (-117.8, 33.2, -117.2, 34.8)))
+        self.assertFalse(coverage_contains_bbox(coverage, (-117.8, 33.2, -116.8, 34.8)))
+
+    def test_usable_frame_fraction_rejects_large_black_borders(self):
+        frame = __import__("numpy").zeros((10, 10, 3), dtype="uint8")
+        frame[:5] = 50
+        self.assertEqual(usable_frame_fraction(frame), 0.5)
+
     def test_searches_both_usgs_sentinel_inventories(self):
         calls = []
 
