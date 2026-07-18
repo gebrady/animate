@@ -25,9 +25,11 @@ wheels/
 
 # Output folder
 output/
+out/
 
-# Earth Engine credentials
+# Private access credentials
 .config/
+landanimate.config.json
 
 # IDEs
 .vscode/

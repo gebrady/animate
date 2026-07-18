@@ -1,120 +1,61 @@
-# Landsat GIF Animator
+# Landanimate
 
-Animate Landsat satellite scenes as GIF to show the world changing over time.
-
-## Features
-
-- **Location Input**: Enter a city name or latitude/longitude coordinates
-- **Time Series**: Automatically fetches one image per month from 2013 to present
-- **Cloud Filtering**: Filters images with less than 10% cloud cover (configurable)
-- **Multiple Visualization Modes**:
-  - `rgb`: Natural color (Red, Green, Blue)
-  - `false_color`: False color infrared (NIR, Red, Green)
-  - `ndvi`: Normalized Difference Vegetation Index
-  - `panchromatic`: High-resolution grayscale
-  - `built_up`: Built-up area index
-  - `snow`: Normalized Difference Snow Index
-- **High Quality Output**: 1024x1024 pixel GIF at 12 FPS (configurable)
-- **1:60000 Scale**: Provides consistent scale across all images
+Create an animated Landsat crop or prepare direct USGS M2M scene downloads.
 
 ## Installation
 
-1. Install Python dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-2. Authenticate with Google Earth Engine:
-```bash
-earthengine authenticate
-```
+## USGS EarthExplorer authentication
 
-## Usage
-
-### Basic Usage
-
-Run the script and follow the prompts:
-```bash
-python animate.py
-```
-
-### Command Line Options
+Landsat catalog discovery is anonymous, but USGS access-gates full-resolution
+Landsat pixels. In the [USGS EROS Registration System](https://ers.cr.usgs.gov/),
+create an M2M application token and enter it together with your ERS username in
+the private, Git-ignored `landanimate.config.json`. Validate it without printing
+or saving the temporary API key:
 
 ```bash
-python animate.py --location "San Francisco" --mode rgb --cloud-cover 10 --fps 12
+python usgs_auth.py
 ```
 
-Or with coordinates:
+USGS now authenticates M2M applications through `login-token`; its legacy
+password-based M2M login has been retired. See the official [M2M application
+token documentation](https://www.usgs.gov/media/files/m2m-application-token-documentation).
+
+## Morristown test
+
+`test_morristown.py` prepares an authenticated USGS M2M Landsat Collection 2
+download plan for Morristown, New Jersey (`40.7968,-74.4815`): a 20-mile square,
+the 1972-present Landsat record, maximum 10% cloud, and one scene target per year.
+
 ```bash
-python animate.py --location "37.7749,-122.4194" --mode ndvi
+python test_morristown.py
 ```
 
-### Options
+For a no-pixel Landsat discovery pass that writes the selected-date report only:
 
-- `--location, -l`: City name or latitude,longitude coordinates (required)
-- `--mode, -m`: Visualization mode (default: rgb)
-  - `rgb`: Natural color
-  - `false_color`: False color infrared
-  - `ndvi`: Vegetation index
-  - `panchromatic`: Grayscale
-  - `built_up`: Built-up area index
-  - `snow`: Snow index
-- `--cloud-cover, -c`: Maximum cloud cover percentage (default: 10)
-- `--fps, -f`: Frames per second for output GIF (default: 12)
-
-### Examples
-
-1. Natural color view of New York:
 ```bash
-python animate.py -l "New York" -m rgb
+python landanimate.py --lat 40.7968 --lon -74.4815 --miles 20 \
+  --start 1972-07-23 --source landsat --cloud 10 --per-year 1 --plan-only
 ```
 
-2. Vegetation index for Amazon rainforest:
-```bash
-python animate.py -l "-3.4653,-62.2159" -m ndvi
-```
+Landsat searches and downloads go directly through USGS M2M using the
+EarthExplorer application token in `landanimate.config.json`; no Google or
+third-party cloud catalog is used. `--prepare-downloads` writes temporary USGS
+download URLs to `out/downloads.json`. The search combines MSS (1972+), TM
+(1982+), ETM+ (1999+), and Landsat 8/9 (2013+) Collection 2 inventories. M2M
+products are full archives, so this command deliberately prepares downloads
+rather than streaming their bands as remote COGs.
 
-3. Snow coverage in the Alps:
-```bash
-python animate.py -l "Chamonix, France" -m snow -c 5
-```
+For a rendered Landsat RGB test, `--download-bands` fetches only the three
+needed GeoTIFFs per selected scene, crops them locally, and builds a GIF.
+It supports the 1972-present MSS, TM, ETM+, and Landsat 8/9 record. MSS has no
+blue band, so its frames use a B5/B4/B4 pseudo-RGB composite and a per-scene
+stretch. The full Claremont test downloads roughly three bands for each annual
+frame and can require several gigabytes of local storage.
 
-4. Urban development in Dubai:
-```bash
-python animate.py -l "Dubai" -m built_up
-```
-
-## Output
-
-Generated GIF files are saved in the `output/` directory with the naming format:
-```
-landsat_{location}_{mode}_{timestamp}.gif
-```
-
-## Requirements
-
-- Python 3.7+
-- Google Earth Engine account (free)
-- Internet connection for fetching satellite imagery
-
-## How It Works
-
-1. **Location Resolution**: Converts city names to coordinates using geocoding
-2. **Region Calculation**: Calculates a bounding box at 1:60000 scale (approximately 60km x 60km)
-3. **Image Collection**: Queries Landsat 8 Collection 2 imagery from 2013-present
-4. **Cloud Filtering**: Filters images with cloud cover below threshold
-5. **Monthly Selection**: Selects the best (lowest cloud cover) image for each month
-6. **Visualization**: Applies the selected visualization mode to each image
-7. **GIF Creation**: Combines all images into an animated GIF at specified frame rate
-
-## Data Source
-
-This tool uses **Landsat 8 Collection 2, Tier 1** imagery from Google Earth Engine:
-- Temporal coverage: 2013 to present
-- Spatial resolution: 30 meters (15m for panchromatic)
-- Revisit time: 16 days
-- Bands: Multiple spectral bands from visible to thermal infrared
-
-## License
-
-See repository license.
+All rendered crops use the local UTM grid rather than Web Mercator. Candidates
+must fully contain the AOI footprint; Landsat 7 scenes after its 2003 SLC failure
+are excluded. Rendered crops with under 90% usable coverage are also rejected.
