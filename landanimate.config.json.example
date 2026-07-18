@@ -1,0 +1,5 @@
+{
+  "usgs_eros": {
+    "m2m_application_token": "paste-your-64-character-m2m-application-token-here"
+  }
+}

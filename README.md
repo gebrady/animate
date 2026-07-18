@@ -1,120 +1,48 @@
-# Landsat GIF Animator
+# Landanimate
 
-Animate Landsat satellite scenes as GIF to show the world changing over time.
-
-## Features
-
-- **Location Input**: Enter a city name or latitude/longitude coordinates
-- **Time Series**: Automatically fetches one image per month from 2013 to present
-- **Cloud Filtering**: Filters images with less than 10% cloud cover (configurable)
-- **Multiple Visualization Modes**:
-  - `rgb`: Natural color (Red, Green, Blue)
-  - `false_color`: False color infrared (NIR, Red, Green)
-  - `ndvi`: Normalized Difference Vegetation Index
-  - `panchromatic`: High-resolution grayscale
-  - `built_up`: Built-up area index
-  - `snow`: Normalized Difference Snow Index
-- **High Quality Output**: 1024x1024 pixel GIF at 12 FPS (configurable)
-- **1:60000 Scale**: Provides consistent scale across all images
+Create animated 30 m crops from low-cloud Landsat and Sentinel-2 scenes.
+The tool streams only the selected crop from each remote COG, writes each
+rendered PNG under `out/scenes`, then builds a GIF and date/scene report.
 
 ## Installation
 
-1. Install Python dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-2. Authenticate with Google Earth Engine:
-```bash
-earthengine authenticate
-```
+## USGS EarthExplorer authentication
 
-## Usage
-
-### Basic Usage
-
-Run the script and follow the prompts:
-```bash
-python animate.py
-```
-
-### Command Line Options
+Landsat catalog discovery is anonymous, but USGS access-gates full-resolution
+Landsat pixels. In the [USGS EROS Registration System](https://ers.cr.usgs.gov/),
+create an M2M application token and paste it into the private, Git-ignored
+`landanimate.config.json`. Validate it without printing or saving the temporary
+API key:
 
 ```bash
-python animate.py --location "San Francisco" --mode rgb --cloud-cover 10 --fps 12
+python usgs_auth.py
 ```
 
-Or with coordinates:
+USGS now authenticates M2M applications through `login-token`; its legacy
+password-based M2M login has been retired. See the official [M2M application
+token documentation](https://www.usgs.gov/media/files/m2m-application-token-documentation).
+
+## Morristown test
+
+`test_morristown.py` is prepared for Morristown, New Jersey (`40.7968,-74.4815`):
+a 20-mile square, Landsat archive beginning `1982-08-22`, maximum 10% cloud,
+eight scenes/year target, RGB, and 16 FPS.
+
 ```bash
-python animate.py --location "37.7749,-122.4194" --mode ndvi
+python test_morristown.py
 ```
 
-### Options
+For a no-pixel discovery pass that writes the selected-date report only:
 
-- `--location, -l`: City name or latitude,longitude coordinates (required)
-- `--mode, -m`: Visualization mode (default: rgb)
-  - `rgb`: Natural color
-  - `false_color`: False color infrared
-  - `ndvi`: Vegetation index
-  - `panchromatic`: Grayscale
-  - `built_up`: Built-up area index
-  - `snow`: Snow index
-- `--cloud-cover, -c`: Maximum cloud cover percentage (default: 10)
-- `--fps, -f`: Frames per second for output GIF (default: 12)
-
-### Examples
-
-1. Natural color view of New York:
 ```bash
-python animate.py -l "New York" -m rgb
+python landanimate.py --lat 40.7968 --lon -74.4815 --miles 20 \
+  --start 1982-08-22 --cloud 10 --per-year 8 --mode rgb --fps 16 --plan-only
 ```
 
-2. Vegetation index for Amazon rainforest:
-```bash
-python animate.py -l "-3.4653,-62.2159" -m ndvi
-```
-
-3. Snow coverage in the Alps:
-```bash
-python animate.py -l "Chamonix, France" -m snow -c 5
-```
-
-4. Urban development in Dubai:
-```bash
-python animate.py -l "Dubai" -m built_up
-```
-
-## Output
-
-Generated GIF files are saved in the `output/` directory with the naming format:
-```
-landsat_{location}_{mode}_{timestamp}.gif
-```
-
-## Requirements
-
-- Python 3.7+
-- Google Earth Engine account (free)
-- Internet connection for fetching satellite imagery
-
-## How It Works
-
-1. **Location Resolution**: Converts city names to coordinates using geocoding
-2. **Region Calculation**: Calculates a bounding box at 1:60000 scale (approximately 60km x 60km)
-3. **Image Collection**: Queries Landsat 8 Collection 2 imagery from 2013-present
-4. **Cloud Filtering**: Filters images with cloud cover below threshold
-5. **Monthly Selection**: Selects the best (lowest cloud cover) image for each month
-6. **Visualization**: Applies the selected visualization mode to each image
-7. **GIF Creation**: Combines all images into an animated GIF at specified frame rate
-
-## Data Source
-
-This tool uses **Landsat 8 Collection 2, Tier 1** imagery from Google Earth Engine:
-- Temporal coverage: 2013 to present
-- Spatial resolution: 30 meters (15m for panchromatic)
-- Revisit time: 16 days
-- Bands: Multiple spectral bands from visible to thermal infrared
-
-## License
-
-See repository license.
+Use `--source sentinel` for anonymous Sentinel-2 imagery (2015 onward) or
+`--source both` to combine sources. `--mode built-up` renders SWIR, NIR, and
+red to emphasize impervious and built surfaces.
